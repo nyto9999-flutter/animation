@@ -25,10 +25,14 @@ class _ParaCurveDemoState extends State<ParaCurveDemo> {
   double appBarHeight = 56;
 
   ///[doubable]
+  /// screen x, y is reversed with calculation x, y
+  /// need to figure out what is atan2, cos, sin
   // function get theta by ballInitX and ballInitY, and ballX and ballY
-  double getTheta(double x1, double y1, double x2, double y2) {
-    double theta = atan((y2 - y1) / (x2 - x1));
-    return theta;
+
+  double getTheta(double initX, double initY, double endX, double endY) {
+    double deltaX = endX - initX;
+    double deltaY = endY - initY;
+    return atan2(deltaY, deltaX);
   }
 
   List<List<double>> calculatePositions(
