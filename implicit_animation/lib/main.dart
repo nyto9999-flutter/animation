@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:implicit_animation/aim_game.dart';
+import 'package:implicit_animation/drag_drop.dart';
+import 'package:implicit_animation/para_curve.dart';
 
 const pages = [
-  AimGame(),
+  DragDropDemo(),
+  ParaCurveDemo(),
 ];
 
 void main() => runApp(const MyApp());
