@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class DragDropDemo extends StatefulWidget {
@@ -8,16 +9,16 @@ class DragDropDemo extends StatefulWidget {
 }
 
 class _DragDropDemoState extends State<DragDropDemo> {
-  final Color _color = Colors.red;
-
-  final double _radius = 50;
-  late double x = 0;
-  late double y = 0;
+  final draggableBall = const Ball(color: Colors.red, radius: 50);
+  final draggingBall = const Ball(color: Colors.yellow, radius: 50);
+  final dragTarget = const Ball(color: Colors.green, radius: 50);
+  double ballX = 0;
+  double ballY = 0;
   bool isHit = false;
+  double appBarHeight = 56;
 
   @override
   Widget build(BuildContext context) {
-    GlobalKey key = GlobalKey();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Draggable Demo'),
@@ -25,47 +26,33 @@ class _DragDropDemoState extends State<DragDropDemo> {
 
       // screen
       body: Container(
-        alignment: Alignment.center,
         color: Colors.black,
 
         // object
         child: Stack(
           children: [
             Positioned(
-              left: x,
-              top: y,
+              left: ballX,
+              top: ballY,
               child: Draggable(
-                data: 'hit',
-                feedback: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(_radius)),
-                ),
+                data: 'hit the target',
+                feedback: draggingBall,
                 onDragEnd: (details) {
                   double centerX = details.offset.dx;
                   double centerY = details.offset.dy;
                   setState(() {
                     if (isHit) {
-                      x = 0;
-                      y = 0;
+                      ballX = 0;
+                      ballY = 0;
                       isHit = false;
                     } else {
-                      x = centerX;
-                      y = centerY - 56; //appbar height
+                      ballX = centerX;
+                      ballY = centerY - appBarHeight; //appbar height
                     }
                   });
                 },
                 childWhenDragging: Container(),
-                key: key,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                      color: _color,
-                      borderRadius: BorderRadius.circular(_radius)),
-                ),
+                child: draggableBall,
               ),
             ),
             Positioned(
@@ -75,24 +62,43 @@ class _DragDropDemoState extends State<DragDropDemo> {
               // target
               child: DragTarget(
                 onAccept: (data) {
-                  print(data);
+                  if (kDebugMode) {
+                    print('Hit the target: $data');
+                  }
                   isHit = true;
                 },
                 builder: (BuildContext context, List<Object?> candidateData,
                     List<dynamic> rejectedData) {
-                  return Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(_radius)),
-                  );
+                  return dragTarget;
                 },
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class Ball extends StatelessWidget {
+  final Color color;
+
+  final double radius;
+  final double size = 100;
+
+  const Ball({
+    super.key,
+    required this.color,
+    required this.radius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+          color: color, borderRadius: BorderRadius.circular(radius)),
     );
   }
 }
