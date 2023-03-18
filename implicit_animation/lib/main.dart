@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:implicit_animation/drag_drop.dart';
 import 'package:implicit_animation/para_curve.dart';
+import 'package:implicit_animation/transform_demo.dart';
 
-const pages = [
-  DragDropDemo(),
-  ParaCurveDemo(),
-];
+const pages = [DragDropDemo(), ParaCurveDemo(), TransformDemo()];
 
 void main() => runApp(const MyApp());
 
