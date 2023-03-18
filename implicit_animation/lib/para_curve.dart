@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'ball.dart';
 
@@ -8,32 +9,55 @@ class ParaCurveDemo extends StatefulWidget {
   State<ParaCurveDemo> createState() => _ParaCurveDemoState();
 }
 
+///[TODO: Boundary bug]
 class _ParaCurveDemoState extends State<ParaCurveDemo>
     with TickerProviderStateMixin {
-  final draggableBall = const Ball(color: Colors.red, radius: 50);
-  final draggingBall = const Ball(color: Colors.yellow, radius: 50);
+  final draggableBall =
+      const Ball(color: CupertinoColors.systemTeal, radius: 50);
+  final draggingBall =
+      const Ball(color: CupertinoColors.systemTeal, radius: 50);
+  final GlobalKey _globalKey = GlobalKey();
 
-  late AnimationController animationController = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 1),
-  )..forward();
+  late AnimationController animationController;
 
   double initX = 0;
   late double initY = appBarHeight;
   late double endX = 0;
-  late double endY = appBarHeight;
+  late double endY = 0;
+  double speed = 0.001;
+  final velocity = 100;
+  var repositionedXY = [0.0, 0.0];
 
-  bool isAnimation = false;
+  bool isAnimating = false;
   double appBarHeight = 56;
 
   @override
   void initState() {
+    animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
     super.initState();
     print('initState');
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    List<double> reposition(double x, double y) {
+      double newX = x;
+      double newY = y;
+      if (x > size.width) {
+        newX = size.width;
+      }
+
+      if (y > size.height) {
+        newY = size.height;
+      }
+
+      return [newX, newY];
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Draggable Demo'),
@@ -41,7 +65,7 @@ class _ParaCurveDemoState extends State<ParaCurveDemo>
 
       // screen
       body: Container(
-        color: Colors.black,
+        color: CupertinoColors.black,
 
         // object
         child: Stack(
@@ -50,8 +74,8 @@ class _ParaCurveDemoState extends State<ParaCurveDemo>
               animation: animationController,
               builder: (context, child) {
                 return Positioned(
-                  left: isAnimation ? endX : initX,
-                  top: isAnimation ? endY - appBarHeight : initY - appBarHeight,
+                  left: isAnimating ? endX : initX,
+                  top: isAnimating ? endY - appBarHeight : initY - appBarHeight,
                   child: Draggable(
                     feedback: draggingBall,
                     onDragEnd: (details) {
@@ -59,26 +83,52 @@ class _ParaCurveDemoState extends State<ParaCurveDemo>
                       double dragEndY = details.offset.dy;
                       double vx = details.velocity.pixelsPerSecond.dx;
                       double vy = details.velocity.pixelsPerSecond.dy;
-                      //SPEED INCREASES WITH BY VELOCITY
-                      double speed = 0.1;
-                      endX = dragEndX + vx * speed;
-                      endY = dragEndY + vy * speed;
+
+                      if (vx.abs() < velocity && vy.abs() < velocity) {
+                        isAnimating = false;
+                        return;
+                      }
+
+                      endX = dragEndX * vx * speed;
+                      print(endX);
+                      print(endY);
+                      endY = (dragEndY - appBarHeight) * vy * speed;
+
+                      repositionedXY = reposition(endX, endY);
 
                       animationController.forward().whenCompleteOrCancel(() {
-                        print('whenCompleteOrCancel');
-                        isAnimation = false;
-                        print(animationController.value);
+                        isAnimating = false;
+
+                        ///get correct position after animation
+                        ///
+                        final RenderBox renderBox = _globalKey.currentContext
+                            ?.findRenderObject() as RenderBox;
+                        final position = renderBox.localToGlobal(Offset(
+                          animationController.value * repositionedXY[0],
+                          animationController.value * repositionedXY[1],
+                        ));
+
+                        ///reset ball's position
+                        setState(() {
+                          initX = position.dx;
+                          initY = position.dy;
+                        });
+                        //get transform matrix please help me
                         animationController.reset();
                       });
                     },
-                    child: isAnimation
+                    child: isAnimating
                         ? draggableBall
-                        : Transform.translate(
-                            offset: Offset(
-                                animationController.value * endX,
-                                animationController.value *
-                                    (endY - appBarHeight)),
-                            child: draggableBall,
+                        : RepaintBoundary(
+                            key: _globalKey,
+                            child: Transform.translate(
+                              filterQuality: FilterQuality.high,
+                              offset: Offset(
+                                  animationController.value * repositionedXY[0],
+                                  animationController.value *
+                                      repositionedXY[1]),
+                              child: draggableBall,
+                            ),
                           ),
                   ),
                 );
