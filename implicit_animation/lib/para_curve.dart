@@ -1,7 +1,4 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-
 import 'ball.dart';
 
 class ParaCurveDemo extends StatefulWidget {
@@ -11,54 +8,28 @@ class ParaCurveDemo extends StatefulWidget {
   State<ParaCurveDemo> createState() => _ParaCurveDemoState();
 }
 
-class _ParaCurveDemoState extends State<ParaCurveDemo> {
+class _ParaCurveDemoState extends State<ParaCurveDemo>
+    with TickerProviderStateMixin {
   final draggableBall = const Ball(color: Colors.red, radius: 50);
   final draggingBall = const Ball(color: Colors.yellow, radius: 50);
-  final dragTarget = const Ball(color: Colors.green, radius: 50);
+
+  late AnimationController animationController = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 1),
+  )..forward();
 
   double initX = 0;
-  double initY = 500;
-  late double endX;
-  late double endY;
+  late double initY = appBarHeight;
+  late double endX = 0;
+  late double endY = appBarHeight;
 
-  bool isThrow = false;
+  bool isAnimation = false;
   double appBarHeight = 56;
 
-  ///[doubable]
-  /// screen x, y is reversed with calculation x, y
-  /// need to figure out what is atan2, cos, sin
-  // function get theta by ballInitX and ballInitY, and ballX and ballY
-
-  double getTheta(double initX, double initY, double endX, double endY) {
-    double deltaX = endX - initX;
-    double deltaY = endY - initY;
-    return atan2(deltaY, deltaX);
-  }
-
-  List<List<double>> calculatePositions(
-    double vx,
-    double vy,
-    double theta,
-    double timeInterval,
-  ) {
-    const g = 9.8; // 重力加速度，單位 m/s^2
-    List<List<double>> positions = [];
-
-    double t = 0;
-    while (true) {
-      double x = vx * cos(theta) * t;
-      double y = vy * sin(theta) * t - 0.5 * g * pow(t, 2);
-
-      if (y < 0) {
-        break;
-      }
-
-      positions.add([x, y]);
-
-      t += timeInterval;
-    }
-
-    return positions;
+  @override
+  void initState() {
+    super.initState();
+    print('initState');
   }
 
   @override
@@ -75,41 +46,43 @@ class _ParaCurveDemoState extends State<ParaCurveDemo> {
         // object
         child: Stack(
           children: [
-            //create animatedContainter with throwing ball curve
+            AnimatedBuilder(
+              animation: animationController,
+              builder: (context, child) {
+                return Positioned(
+                  left: isAnimation ? endX : initX,
+                  top: isAnimation ? endY - appBarHeight : initY - appBarHeight,
+                  child: Draggable(
+                    feedback: draggingBall,
+                    onDragEnd: (details) {
+                      double dragEndX = details.offset.dx;
+                      double dragEndY = details.offset.dy;
+                      double vx = details.velocity.pixelsPerSecond.dx;
+                      double vy = details.velocity.pixelsPerSecond.dy;
+                      //SPEED INCREASES WITH BY VELOCITY
+                      double speed = 0.1;
+                      endX = dragEndX + vx * speed;
+                      endY = dragEndY + vy * speed;
 
-            Positioned(
-              left: initX,
-              top: initY,
-              child: AnimatedContainer(
-                duration: const Duration(seconds: 10),
-                curve: Curves.easeOutCubic,
-                child: Draggable(
-                  data: 'hit the target',
-                  feedback: draggingBall,
-                  onDragStarted: () {
-                    isThrow = false;
-                  },
-                  onDragEnd: (details) {
-                    double dragEndX = details.offset.dx;
-                    double dragEndY = details.offset.dy;
-                    double vx = details.velocity.pixelsPerSecond.dx;
-                    double vy = details.velocity.pixelsPerSecond.dy;
-                    // get angle then calculate curve
-                    final theta = getTheta(initX, initY, dragEndX, dragEndY);
-                    print(theta);
-
-                    // for (int i = 0; i < curve.length; i++) {
-                    //   setState(() {
-                    //     print(curve[i][0]);
-                    //     ballX = curve[i][0];
-                    //     ballY = curve[i][1];
-                    //   });
-                    // }
-                  },
-                  childWhenDragging: Container(),
-                  child: draggableBall,
-                ),
-              ),
+                      animationController.forward().whenCompleteOrCancel(() {
+                        print('whenCompleteOrCancel');
+                        isAnimation = false;
+                        print(animationController.value);
+                        animationController.reset();
+                      });
+                    },
+                    child: isAnimation
+                        ? draggableBall
+                        : Transform.translate(
+                            offset: Offset(
+                                animationController.value * endX,
+                                animationController.value *
+                                    (endY - appBarHeight)),
+                            child: draggableBall,
+                          ),
+                  ),
+                );
+              },
             ),
           ],
         ),
