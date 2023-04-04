@@ -4,7 +4,7 @@ class Ball extends StatelessWidget {
   final Color color;
 
   final double radius;
-  final double size = 100;
+  final double size = 1111100;
 
   const Ball({
     super.key,
